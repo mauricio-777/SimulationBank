@@ -11,6 +11,9 @@ from src.customer.domain.customer import Customer
 from src.customer.infrastructure.poisson_customer_generator import ConfigurableGenerator
 from src.metrics.domain.simulation_metrics import SimulationMetrics
 from src.metrics.domain.wait_time_record import WaitTimeRecord
+from src.queue.infrastructure.in_memory_queue_repository import InMemoryQueueRepository
+from src.queue.domain.queue_policy import QueuePolicy
+from src.queue.application.dequeue_customer import DequeueCustomerUseCase
 
 # parte-Mauricio
 class DiscreteEventSimulation:
@@ -29,7 +32,19 @@ class DiscreteEventSimulation:
         
         # Estado del sistema en un instante de tiempo
         self.tellers: Dict[str, Teller] = {} # Diccionario que almacena todas las ventanillas disponibles por su ID
-        self.waiting_queue: List[Customer] = [] # Cola de clientes esperando ser atendidos, ordenados por prioridad
+        
+        # parte-QueueSetup: Initialize priority queue with optional capacity constraints
+        # The queue uses binary heap for O(log n) insertion/extraction operations
+        # Respects FIFO ordering within same priority level using arrival timestamp
+        self.queue_repo = InMemoryQueueRepository.get_instance()
+        self.queue_id = f"queue_{simulation_id}"
+        # Create queue with optional max capacity from config, defaults to unlimited if not specified
+        max_queue_capacity = getattr(config, 'max_queue_capacity', -1)
+        self.queue_policy = QueuePolicy(
+            max_queue_size=max_queue_capacity if max_queue_capacity > 0 else -1,
+            allow_rejections=(max_queue_capacity > 0)  # Enable rejections only if capacity is limited
+        )
+        self.dequeue_use_case = DequeueCustomerUseCase(queue_id=self.queue_id)
         
         # Cola de prioridad que mantiene la línea temporal cronológica de futuros eventos
         self.event_queue: List[SimulationEvent] = []
@@ -45,8 +60,13 @@ class DiscreteEventSimulation:
         """
         self.status = SimulationStatus.IDLE
         self.clock = 0.0
-        self.waiting_queue.clear()
         self.event_queue.clear()
+        
+        # parte-QueueReset: Clear and recreate the priority queue for fresh simulation
+        # Delete old queue if it existed and create new one with policy constraints
+        self.queue_repo.delete_queue(self.queue_id)
+        self.queue_repo.create_queue(self.queue_id, self.queue_policy)
+        self.dequeue_use_case = DequeueCustomerUseCase(queue_id=self.queue_id)
         
         # parte-Jhonny: Reiniciamos las métricas al iniciar para no mezclar ejecuciones
         self.metrics = SimulationMetrics(simulation_id=self.simulation_id)
@@ -81,12 +101,15 @@ class DiscreteEventSimulation:
             
         self.status = SimulationStatus.FINISHED
         
-        # parte-Jhonny: Al terminar, marcamos a todos los que se quedaron esperando en la cola como rechazados.
-        for _ in self.waiting_queue:
-            self.metrics.record_rejection()
-        
-        # parte-Jhonny: Registramos longitud de cola final como 0 (despejada).
-        self.metrics.record_queue_length(self.clock, 0)
+        # parte-FinalMetrics: Get remaining customers in priority queue and record as rejected
+        queue = self.queue_repo.get_queue(self.queue_id)
+        if queue:
+            # Count remaining customers in the priority queue (binary heap)
+            remaining_count = queue.size()
+            for _ in range(remaining_count):
+                self.metrics.record_rejection()
+            # parte-Jhonny: Register final queue length as cleared
+            self.metrics.record_queue_length(self.clock, 0)
 
     def schedule_event(self, event: SimulationEvent) -> None:
         """
@@ -111,7 +134,7 @@ class DiscreteEventSimulation:
         """
         Maneja el evento en el cual un cliente cruza la puerta del banco.
         1. Crea su instancia.
-        2. Lo ingresa a la cola de espera, respetando las prioridades.
+        2. Lo ingresa a la cola de espera con prioridad, respetando FIFO dentro del mismo nivel.
         3. Programa aleatoriamente la llegada del *siguiente* cliente.
         4. Intenta buscar de inmediato una ventanilla libre que pueda atenderlo.
         """
@@ -127,13 +150,22 @@ class DiscreteEventSimulation:
             transaction_type=txn
         )
         
-        # Encolar cliente
-        self.waiting_queue.append(customer)
-        # Ordenar por prioridad ascendente (1 es mayor prioridad) si queremos que se respete inmediatamente
-        self.waiting_queue.sort(key=lambda c: (c.priority, c.arrival_time))
-        
-        # parte-Jhonny: Hook - Cada vez que se encola un cliente actualizamos la longitud máxima
-        self.metrics.record_queue_length(self.clock, len(self.waiting_queue))
+        # parte-EnqueueOperation: Use priority queue to enqueue customer
+        # Queue respects: 1) priority level (1=high, 2=medium, 3=low)
+        #                 2) FIFO order within same priority using arrival_time
+        queue = self.queue_repo.get_queue(self.queue_id)
+        if queue:
+            enqueued = queue.enqueue(customer)
+            if enqueued:
+                # Customer successfully enqueued
+                # parte-Jhonny: Update queue length metric after successful enqueue
+                self.metrics.record_queue_length(self.clock, queue.size())
+            else:
+                # Customer rejected if queue is at capacity
+                self.metrics.record_rejection()
+        else:
+            # Queue not found - should not happen in normal operation
+            self.metrics.record_rejection()
         
         # Programar SIGUIENTE llegada
         next_interval = self.generator.get_next_arrival_interval()
@@ -185,19 +217,21 @@ class DiscreteEventSimulation:
     def _assign_free_teller(self) -> None:
         """
         Busca secuencialmente si existe una ventanilla inactiva (IDLE). 
-        En caso de encontrar una y haber gente esperando, extrae al primer cliente 
-        de la fila y programa el evento SERVICE_START para esa ventanilla en el reloj actual.
+        En caso de encontrar una y haber gente esperando, extrae al cliente de mayor prioridad 
+        de la cola y programa el evento SERVICE_START para esa ventanilla en el reloj actual.
         """
-        if not self.waiting_queue:
-            return
-            
+        # parte-AssignLogic: Iterate through tellers to find the first available one
         for t_id, teller in self.tellers.items():
             if teller.status == "IDLE" or getattr(teller.status, "value", None) == "IDLE":
-                next_customer = self.waiting_queue.pop(0)
-                
-                # parte-Jhonny: Registramos cambio de longitud de cola al des-encolar
-                self.metrics.record_queue_length(self.clock, len(self.waiting_queue))
-                
-                # Programar inicio INMEDIATO
-                self.schedule_event(SimulationEvent(self.clock, EventType.SERVICE_START, customer=next_customer, teller_id=t_id))
-                return # Sólo asignamos uno a la vez iterativamente
+                # Found an idle teller, try to get next customer from priority queue
+                queue = self.queue_repo.get_queue(self.queue_id)
+                if queue and not queue.is_empty():
+                    # parte-DequeuePriority: Extract highest-priority customer respecting FIFO within level
+                    next_customer = queue.dequeue()
+                    
+                    # parte-Jhonny: Update queue length metric after dequeue operation
+                    self.metrics.record_queue_length(self.clock, queue.size())
+                    
+                    # Programar inicio INMEDIATO de servicio
+                    self.schedule_event(SimulationEvent(self.clock, EventType.SERVICE_START, customer=next_customer, teller_id=t_id))
+                    return  # Assign only one customer per iteration
