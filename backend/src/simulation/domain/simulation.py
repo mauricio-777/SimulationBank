@@ -9,6 +9,8 @@ from .simulation_event import SimulationEvent, EventType
 from src.teller.domain.teller import Teller
 from src.customer.domain.customer import Customer
 from src.customer.infrastructure.poisson_customer_generator import ConfigurableGenerator
+from src.metrics.domain.simulation_metrics import SimulationMetrics
+from src.metrics.domain.wait_time_record import WaitTimeRecord
 
 # parte-Mauricio
 class DiscreteEventSimulation:
@@ -21,6 +23,9 @@ class DiscreteEventSimulation:
         self.config = config # Opciones de configuración provistas por el usuario
         self.status = SimulationStatus.IDLE # Estado inicial inactivo
         self.clock: float = 0.0 # Reloj global de simulación en segundos simulados
+        
+        # parte-Jhonny: Inicializamos el recolector de métricas para esta simulación
+        self.metrics = SimulationMetrics(simulation_id=self.simulation_id)
         
         # Estado del sistema en un instante de tiempo
         self.tellers: Dict[str, Teller] = {} # Diccionario que almacena todas las ventanillas disponibles por su ID
@@ -42,6 +47,9 @@ class DiscreteEventSimulation:
         self.clock = 0.0
         self.waiting_queue.clear()
         self.event_queue.clear()
+        
+        # parte-Jhonny: Reiniciamos las métricas al iniciar para no mezclar ejecuciones
+        self.metrics = SimulationMetrics(simulation_id=self.simulation_id)
         
         # Inicializar ventanillas
         for i in range(self.config.num_tellers):
@@ -72,6 +80,13 @@ class DiscreteEventSimulation:
             self.process_next_event(current_event)
             
         self.status = SimulationStatus.FINISHED
+        
+        # parte-Jhonny: Al terminar, marcamos a todos los que se quedaron esperando en la cola como rechazados.
+        for _ in self.waiting_queue:
+            self.metrics.record_rejection()
+        
+        # parte-Jhonny: Registramos longitud de cola final como 0 (despejada).
+        self.metrics.record_queue_length(self.clock, 0)
 
     def schedule_event(self, event: SimulationEvent) -> None:
         """
@@ -117,6 +132,9 @@ class DiscreteEventSimulation:
         # Ordenar por prioridad ascendente (1 es mayor prioridad) si queremos que se respete inmediatamente
         self.waiting_queue.sort(key=lambda c: (c.priority, c.arrival_time))
         
+        # parte-Jhonny: Hook - Cada vez que se encola un cliente actualizamos la longitud máxima
+        self.metrics.record_queue_length(self.clock, len(self.waiting_queue))
+        
         # Programar SIGUIENTE llegada
         next_interval = self.generator.get_next_arrival_interval()
         next_time = self.clock + next_interval
@@ -134,6 +152,19 @@ class DiscreteEventSimulation:
         teller = self.tellers.get(teller_id)
         if teller:
             teller.start_service(customer, self.clock)
+            
+            # parte-Jhonny: Hook - Calculamos tiempo de espera y registramos
+            wait_time = self.clock - customer.arrival_time
+            record = WaitTimeRecord(
+                customer_id=customer.id,
+                priority=customer.priority,
+                wait_time=wait_time,
+                service_time=customer.service_time,
+                total_time=wait_time + customer.service_time
+            )
+            self.metrics.record_wait_time(record)
+            self.metrics.record_teller_work_time(customer.service_time) # Sabemos que lo va a atender este rato
+            
             # Programar fin de servicio
             end_time = self.clock + customer.service_time
             self.schedule_event(SimulationEvent(end_time, EventType.SERVICE_END, teller_id=teller_id))
@@ -163,6 +194,10 @@ class DiscreteEventSimulation:
         for t_id, teller in self.tellers.items():
             if teller.status == "IDLE" or getattr(teller.status, "value", None) == "IDLE":
                 next_customer = self.waiting_queue.pop(0)
+                
+                # parte-Jhonny: Registramos cambio de longitud de cola al des-encolar
+                self.metrics.record_queue_length(self.clock, len(self.waiting_queue))
+                
                 # Programar inicio INMEDIATO
                 self.schedule_event(SimulationEvent(self.clock, EventType.SERVICE_START, customer=next_customer, teller_id=t_id))
                 return # Sólo asignamos uno a la vez iterativamente
