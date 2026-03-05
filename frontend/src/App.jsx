@@ -1,34 +1,102 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect, useState } from 'react'
 import './App.css'
+import SimulationPanel from './simulation/components/SimulationPanel'
 
+/**
+ * parte-Leandro: Componente raíz de la aplicación
+ * 
+ * Este componente es el contenedor principal de toda la aplicación.
+ * Se encarga de:
+ * 1. Verificar que el backend está disponible
+ * 2. Inicializar valores por defecto desde el servidor
+ * 3. Renderizar el panel de simulación principal
+ * 4. Manejar errores de conexión con el backend
+ */
 function App() {
-  const [count, setCount] = useState(0)
+  // parte-Leandro: Estado para almacenar si el backend está disponible
+  const [backendAvailable, setBackendAvailable] = useState(false)
+  
+  // parte-Leandro: Estado para almacenar los parámetros por defecto obtenidos del backend
+  const [defaultConfig, setDefaultConfig] = useState(null)
+  
+  // parte-Leandro: Estado para mostrar mensajes de error si el backend no está disponible
+  const [error, setError] = useState(null)
 
+  /**
+   * parte-Leandro: Hook useEffect para verificar disponibilidad del backend al cargar la aplicación
+   * Se ejecuta una sola vez cuando el componente se monta (empty dependency array)
+   */
+  useEffect(() => {
+    const checkBackendAndLoadDefaults = async () => {
+      try {
+        // parte-Leandro: Primero, hacer un GET al endpoint de health check
+        const healthResponse = await fetch('http://localhost:5000/')
+        
+        if (!healthResponse.ok) {
+          throw new Error('Backend server not responding properly')
+        }
+        
+        // parte-Leandro: Si el health check pasó, obtener la configuración por defecto
+        const configResponse = await fetch('http://localhost:5000/api/config/defaults')
+        
+        if (!configResponse.ok) {
+          throw new Error('Could not load default configuration')
+        }
+        
+        // parte-Leandro: Parsear la respuesta JSON
+        const configData = await configResponse.json()
+        
+        // parte-Leandro: Actualizar el estado con la configuración obtenida
+        setDefaultConfig(configData)
+        setBackendAvailable(true)
+        setError(null)
+        
+      } catch (err) {
+        // parte-Leandro: Si hay error de conexión, mostrar mensaje al usuario
+        setError(`Error connecting to backend: ${err.message}. Make sure the backend server is running on http://localhost:5000`)
+        setBackendAvailable(false)
+      }
+    }
+    
+    // parte-Leandro: Ejecutar la verificación al montar el componente
+    checkBackendAndLoadDefaults()
+  }, [])
+
+  /**
+   * parte-Leandro: Renderizar la aplicación
+   * Si hay error de conexión, mostrar mensaje de error
+   * Si el backend está disponible, mostrar el panel de simulación con la configuración por defecto
+   */
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div className="app-container">
+      <header className="app-header">
+        <h1>Simulation Bank - Discrete Event Simulation</h1>
+        <p>Queue Management System with Priority Handling</p>
+      </header>
+
+      {/* parte-Leandro: Mostrar error si hay problemas de conexión */}
+      {error && (
+        <div className="error-banner">
+          <span className="error-icon">⚠️</span>
+          <p>{error}</p>
+        </div>
+      )}
+
+      {/* parte-Leandro: Mostrar contenido solo si el backend está disponible */}
+      {backendAvailable && defaultConfig && (
+        <main className="app-main">
+          <SimulationPanel defaultConfig={defaultConfig} />
+        </main>
+      )}
+
+      {/* parte-Leandro: Mostrar indicador de carga mientras se verifican los parámetros */}
+      {!backendAvailable && !error && (
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Connecting to backend server...</p>
+        </div>
+      )}
+    </div>
   )
 }
 

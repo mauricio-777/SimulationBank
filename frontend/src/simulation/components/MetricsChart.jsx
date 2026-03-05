@@ -1,0 +1,221 @@
+/**
+ * parte-Leandro: Componente para mostrar gráficas de métricas (Tarea 4.3)
+ * 
+ * Este componente visualiza los resultados de la simulación en formato gráfico.
+ * Actualmente muestra:
+ * 1. Tabla de métricas principales
+ * 2. Gráficas de barras para comparación
+ * 3. Indicadores clave de rendimiento
+ * 
+ * En futuras versiones se puede integrar una librería como Chart.js o D3
+ * para gráficas más avanzadas (líneas temporales, áreas, etc.)
+ */
+function MetricsChart({ metrics }) {
+  /**
+   * parte-Leandro: Función para formatear la llave de métrica a texto legible
+   * Convierte 'average_wait_time' a 'Average Wait Time'
+   */
+  const formatMetricLabel = (key) => {
+    return key
+      .replace(/_/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
+  /**
+   * parte-Leandro: Función para formatear valores numéricos
+   * Si es un porcentaje, muestra con símbolo %
+   * Si es un tiempo, muestra con decimales limitados
+   */
+  const formatMetricValue = (key, value) => {
+    if (typeof value !== 'number') return value
+
+    // Formatear según el tipo de métrica
+    if (key.includes('rate') || key.includes('percentage')) {
+      return `${(value * 100).toFixed(2)}%`
+    }
+
+    if (key.includes('time') || key.includes('wait') || key.includes('service')) {
+      return `${value.toFixed(2)}s`
+    }
+
+    return value.toFixed(2)
+  }
+
+  /**
+   * parte-Leandro: Determinar si la métrica indica buen o mal rendimiento
+   * Retorna una clase CSS para colorear la métrica
+   */
+  const getMetricStatus = (key, value) => {
+    if (typeof value !== 'number') return 'metric-neutral'
+
+    // parte-Leandro: Tiempos de espera bajos son buenos
+    if (key.includes('wait_time')) {
+      if (value < 5) return 'metric-good'
+      if (value < 15) return 'metric-moderate'
+      return 'metric-poor'
+    }
+
+    // parte-Leandro: Tasas de servicio altas son buenas
+    if (key.includes('service_rate') || key.includes('throughput')) {
+      if (value > 0.9) return 'metric-good'
+      if (value > 0.7) return 'metric-moderate'
+      return 'metric-poor'
+    }
+
+    // parte-Leandro: Utilización moderada es ideal
+    if (key.includes('utilization')) {
+      if (value > 0.6 && value < 0.95) return 'metric-good'
+      if (value > 0.4 && value < 1.0) return 'metric-moderate'
+      return 'metric-poor'
+    }
+
+    return 'metric-neutral'
+  }
+
+  return (
+    <div className="metrics-chart">
+      {/* parte-Leandro: Sección de indicadores clave (KPIs) en vista de tarjetas */}
+      <section className="metrics-section kpi-section">
+        <h4>Key Performance Indicators</h4>
+        <div className="metrics-grid kpi-grid">
+          {/* parte-Leandro: Mostrar métricas principales en formato grande y destacado */}
+          {metrics && Object.entries(metrics).map(([key, value]) => {
+            // Saltar valores no numéricos y ciertas claves
+            if (typeof value !== 'number' || key === 'success') return null
+
+            // Mostrar solo métricas clave
+            const keyMetrics = [
+              'average_wait_time',
+              'average_service_time',
+              'customers_served',
+              'customers_rejected',
+              'system_utilization'
+            ]
+
+            if (!keyMetrics.some(km => key.includes(km))) return null
+
+            const status = getMetricStatus(key, value)
+
+            return (
+              <div key={key} className={`kpi-card ${status}`}>
+                <span className="kpi-label">{formatMetricLabel(key)}</span>
+                <span className="kpi-value">{formatMetricValue(key, value)}</span>
+                <span className="kpi-indicator"></span>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* parte-Leandro: Sección de tabla de todas las métricas */}
+      <section className="metrics-section table-section">
+        <h4>Detailed Metrics</h4>
+        <table className="metrics-table">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Value</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* parte-Leandro: Iterar sobre todas las métricas y mostrarlas en la tabla */}
+            {metrics && Object.entries(metrics).map(([key, value]) => {
+              // Saltar valores no numéricos y ciertas claves especiales
+              if (typeof value !== 'number' || key === 'success') return null
+
+              const status = getMetricStatus(key, value)
+              const statusLabel = status
+                .replace('metric-', '')
+                .toUpperCase()
+
+              return (
+                <tr key={key} className={`metric-row ${status}`}>
+                  <td className="metric-name">{formatMetricLabel(key)}</td>
+                  <td className="metric-value">{formatMetricValue(key, value)}</td>
+                  <td className="metric-status">
+                    <span className={`status-badge ${status}`}>{statusLabel}</span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </section>
+
+      {/* parte-Leandro: Sección de gráfica de barras simple */}
+      <section className="metrics-section chart-section">
+        <h4>Performance Chart</h4>
+        <div className="simple-chart">
+          {/* parte-Leandro: Crear una visualización simple de barras horizontales */}
+          {metrics && Object.entries(metrics)
+            .filter(([key, value]) => typeof value === 'number' && !key.includes('count') && key !== 'success')
+            .slice(0, 5) // Mostrar solo las primeras 5 métricas para evitar saturación
+            .map(([key, value]) => {
+              // Normalizar valores a escala 0-100 para visualización
+              let normalizedValue = value
+              if (key.includes('time')) {
+                normalizedValue = Math.min((value / 30) * 100, 100) // Asumir máximo 30 segundos
+              } else if (value <= 1) {
+                normalizedValue = value * 100 // Si es porcentaje (0-1), convertir a 0-100
+              }
+
+              return (
+                <div key={key} className="chart-bar-item">
+                  <label>{formatMetricLabel(key)}</label>
+                  <div className="bar-container">
+                    <div
+                      className="bar-fill"
+                      style={{ width: `${Math.min(normalizedValue, 100)}%` }}
+                    ></div>
+                  </div>
+                  <span className="bar-value">{formatMetricValue(key, value)}</span>
+                </div>
+              )
+            })}
+        </div>
+      </section>
+
+      {/* parte-Leandro: Sección de conclusiones y recomendaciones */}
+      <section className="metrics-section insights-section">
+        <h4>Insights & Recommendations</h4>
+        <div className="insights-content">
+          {/* parte-Leandro: Generar recomendaciones basadas en las métricas */}
+          <ul>
+            {metrics && metrics.average_wait_time > 10 && (
+              <li className="insight-warning">
+                ⚠️ <strong>High wait times detected:</strong> Consider increasing the number of tellers or improving service efficiency.
+              </li>
+            )}
+
+            {metrics && metrics.customers_rejected > metrics.customers_served * 0.1 && (
+              <li className="insight-warning">
+                ⚠️ <strong>Rejection rate is high:</strong> Increase maximum queue capacity or add more tellers to reduce lost customers.
+              </li>
+            )}
+
+            {metrics && metrics.system_utilization > 0.95 && (
+              <li className="insight-warning">
+                ⚠️ <strong>System is over-utilized:</strong> Consider adding more tellers or reducing customer arrival rate.
+              </li>
+            )}
+
+            {metrics && metrics.average_wait_time < 5 && metrics.system_utilization < 0.8 && (
+              <li className="insight-success">
+                ✅ <strong>System is performing well:</strong> Wait times are low and system utilization is reasonable.
+              </li>
+            )}
+
+            <li className="insight-info">
+              ℹ️ <strong>Simulation Summary:</strong> This simulation ran with the parameters you specified and collected metrics on queue behavior, service times, and system efficiency.
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export default MetricsChart
