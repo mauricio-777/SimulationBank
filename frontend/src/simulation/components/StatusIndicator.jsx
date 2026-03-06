@@ -18,44 +18,44 @@ function StatusIndicator({ status = 'idle', progress = 0 }) {
       case 'initializing':
         return {
           icon: '⚙️',
-          text: 'Initializing...',
+          text: 'Inicializando...',
           color: 'status-yellow',
-          description: 'Preparing simulation environment'
+          description: 'Preparando entorno de simulación'
         }
       case 'running':
         return {
           icon: '▶️',
-          text: 'Running',
+          text: 'En curso',
           color: 'status-green',
-          description: 'Simulation in progress'
+          description: 'Simulación en progreso'
         }
       case 'paused':
         return {
           icon: '⏸️',
-          text: 'Paused',
+          text: 'Pausada',
           color: 'status-blue',
-          description: 'Simulation paused'
+          description: 'Simulación pausada'
         }
       case 'completed':
         return {
           icon: '✅',
-          text: 'Completed',
+          text: 'Completada',
           color: 'status-success',
-          description: 'Simulation finished successfully'
+          description: 'Simulación finalizada con éxito'
         }
       case 'error':
         return {
           icon: '❌',
           text: 'Error',
           color: 'status-error',
-          description: 'An error occurred during simulation'
+          description: 'Ocurrió un error durante la simulación'
         }
       default:
         return {
           icon: '⭕',
-          text: 'Ready',
+          text: 'Listo',
           color: 'status-idle',
-          description: 'Ready to start a new simulation'
+          description: 'Listo para iniciar una nueva simulación'
         }
     }
   }

@@ -61,32 +61,32 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
     const limits = defaultConfig?.limits || {}
 
     // parte-Leandro: Validar número de ventanillas
-    if (formData.num_tellers < (limits.num_tellers_min || 1) || 
-        formData.num_tellers > (limits.num_tellers_max || 10)) {
-      newErrors.num_tellers = `Must be between ${limits.num_tellers_min || 1} and ${limits.num_tellers_max || 10}`
+    if (formData.num_tellers < (limits.num_tellers_min || 1) ||
+      formData.num_tellers > (limits.num_tellers_max || 10)) {
+      newErrors.num_tellers = `Debe estar entre ${limits.num_tellers_min || 1} y ${limits.num_tellers_max || 10}`
     }
 
     // parte-Leandro: Validar tasa de llegadas
-    if (formData.arrival_rate < (limits.arrival_rate_min || 0.1) || 
-        formData.arrival_rate > (limits.arrival_rate_max || 10.0)) {
-      newErrors.arrival_rate = `Must be between ${limits.arrival_rate_min || 0.1} and ${limits.arrival_rate_max || 10.0}`
+    if (formData.arrival_rate < (limits.arrival_rate_min || 0.1) ||
+      formData.arrival_rate > (limits.arrival_rate_max || 10.0)) {
+      newErrors.arrival_rate = `Debe estar entre ${limits.arrival_rate_min || 0.1} y ${limits.arrival_rate_max || 10.0}`
     }
 
     // parte-Leandro: Validar tiempo medio de servicio
-    if (formData.service_mean < (limits.service_mean_min || 1.0) || 
-        formData.service_mean > (limits.service_mean_max || 30.0)) {
-      newErrors.service_mean = `Must be between ${limits.service_mean_min || 1.0} and ${limits.service_mean_max || 30.0}`
+    if (formData.service_mean < (limits.service_mean_min || 1.0) ||
+      formData.service_mean > (limits.service_mean_max || 30.0)) {
+      newErrors.service_mean = `Debe estar entre ${limits.service_mean_min || 1.0} y ${limits.service_mean_max || 30.0}`
     }
 
     // parte-Leandro: Validar duración total de la simulación
-    if (formData.max_time < (limits.max_time_min || 3600) || 
-        formData.max_time > (limits.max_time_max || 86400)) {
-      newErrors.max_time = `Must be between ${limits.max_time_min || 3600} and ${limits.max_time_max || 86400} seconds`
+    if (formData.max_time < (limits.max_time_min || 3600) ||
+      formData.max_time > (limits.max_time_max || 86400)) {
+      newErrors.max_time = `Debe estar entre ${limits.max_time_min || 3600} y ${limits.max_time_max || 86400} segundos`
     }
 
     // parte-Leandro: Validar capacidad máxima de la cola
     if (formData.max_queue_capacity < 1) {
-      newErrors.max_queue_capacity = 'Must be at least 1'
+      newErrors.max_queue_capacity = 'Debe ser al menos 1'
     }
 
     setErrors(newErrors)
@@ -99,7 +99,7 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
    */
   const handleInputChange = (e) => {
     const { name, value, type } = e.target
-    
+
     // parte-Leandro: Convertir a número si es un campo numérico
     const processedValue = type === 'number' ? parseFloat(value) : value
 
@@ -143,16 +143,16 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
   return (
     <form className="config-form" onSubmit={handleSubmit}>
       <div className="form-title">
-        <h2>Simulation Configuration</h2>
-        <p>Enter the parameters for your bank simulation</p>
+        <h2>Configuración de la Simulación</h2>
+        <p>Ingresa los parámetros para la simulación del banco</p>
       </div>
 
       {/* parte-Leandro: Sección 1: Configuración de Ventanillas */}
       <fieldset className="form-section">
-        <legend>Teller Configuration</legend>
-        
+        <legend>Configuración de Ventanillas</legend>
+
         <div className="form-group">
-          <label htmlFor="num_tellers">Number of Tellers (Servers)</label>
+          <label htmlFor="num_tellers">Número de Ventanillas</label>
           <input
             id="num_tellers"
             name="num_tellers"
@@ -165,16 +165,16 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
             className={errors.num_tellers ? 'input-error' : ''}
           />
           {errors.num_tellers && <span className="error-message">{errors.num_tellers}</span>}
-          <small>How many tellers are available to serve customers</small>
+          <small>Cuántas ventanillas están disponibles para atender clientes</small>
         </div>
       </fieldset>
 
       {/* parte-Leandro: Sección 2: Configuración de Llegadas */}
       <fieldset className="form-section">
-        <legend>Arrival Configuration (λ - Lambda)</legend>
-        
+        <legend>Configuración de Llegadas (λ - Lambda)</legend>
+
         <div className="form-group">
-          <label htmlFor="arrival_rate">Arrival Rate (customers per time unit)</label>
+          <label htmlFor="arrival_rate">Tasa de Llegadas (clientes por unidad de tiempo)</label>
           <input
             id="arrival_rate"
             name="arrival_rate"
@@ -188,11 +188,11 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
             className={errors.arrival_rate ? 'input-error' : ''}
           />
           {errors.arrival_rate && <span className="error-message">{errors.arrival_rate}</span>}
-          <small>Higher values mean more customers arrive per unit of time</small>
+          <small>Valores más altos significan que llegan más clientes por unidad de tiempo</small>
         </div>
 
         <div className="form-group">
-          <label htmlFor="arrival_dist">Arrival Distribution</label>
+          <label htmlFor="arrival_dist">Distribución de Llegadas</label>
           <select
             id="arrival_dist"
             name="arrival_dist"
@@ -200,7 +200,7 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
             onChange={handleInputChange}
             disabled={isLoading}
           >
-            <option value="exponential">Exponential</option>
+            <option value="exponential">Exponencial</option>
             <option value="poisson">Poisson</option>
           </select>
         </div>
@@ -208,10 +208,10 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
 
       {/* parte-Leandro: Sección 3: Configuración de Servicio */}
       <fieldset className="form-section">
-        <legend>Service Configuration (μ - Mu)</legend>
-        
+        <legend>Configuración de Servicio (μ - Mu)</legend>
+
         <div className="form-group">
-          <label htmlFor="service_mean">Mean Service Time (seconds)</label>
+          <label htmlFor="service_mean">Tiempo Medio de Servicio (segundos)</label>
           <input
             id="service_mean"
             name="service_mean"
@@ -225,11 +225,11 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
             className={errors.service_mean ? 'input-error' : ''}
           />
           {errors.service_mean && <span className="error-message">{errors.service_mean}</span>}
-          <small>Average time each teller spends serving a customer</small>
+          <small>Tiempo promedio que cada ventanilla pasa atendiendo a un cliente</small>
         </div>
 
         <div className="form-group">
-          <label htmlFor="service_dist">Service Distribution</label>
+          <label htmlFor="service_dist">Distribución de Servicio</label>
           <select
             id="service_dist"
             name="service_dist"
@@ -237,18 +237,18 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
             onChange={handleInputChange}
             disabled={isLoading}
           >
-            <option value="exponential">Exponential</option>
-            <option value="uniform">Uniform</option>
+            <option value="exponential">Exponencial</option>
+            <option value="uniform">Uniforme</option>
           </select>
         </div>
       </fieldset>
 
       {/* parte-Leandro: Sección 4: Configuración del Tiempo de Simulación */}
       <fieldset className="form-section">
-        <legend>Simulation Duration</legend>
-        
+        <legend>Duración de la Simulación</legend>
+
         <div className="form-group">
-          <label htmlFor="max_time">Simulation Duration (seconds)</label>
+          <label htmlFor="max_time">Duración de la Simulación (segundos)</label>
           <div className="input-with-display">
             <input
               id="max_time"
@@ -265,16 +265,16 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
             <span className="time-display">{formatTimeDisplay(formData.max_time)}</span>
           </div>
           {errors.max_time && <span className="error-message">{errors.max_time}</span>}
-          <small>Total simulation time in seconds (suggested: 8 hours = 28800 seconds)</small>
+          <small>Tiempo total de simulación en segundos (sugerido: 8 horas = 28800 segundos)</small>
         </div>
       </fieldset>
 
       {/* parte-Leandro: Sección 5: Configuración Avanzada */}
       <fieldset className="form-section">
-        <legend>Advanced Settings</legend>
-        
+        <legend>Configuración Avanzada</legend>
+
         <div className="form-group">
-          <label htmlFor="max_queue_capacity">Maximum Queue Capacity</label>
+          <label htmlFor="max_queue_capacity">Capacidad Máxima de la Cola</label>
           <input
             id="max_queue_capacity"
             name="max_queue_capacity"
@@ -286,7 +286,7 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
             className={errors.max_queue_capacity ? 'input-error' : ''}
           />
           {errors.max_queue_capacity && <span className="error-message">{errors.max_queue_capacity}</span>}
-          <small>Maximum number of customers that can wait in the queue</small>
+          <small>Número máximo de clientes que pueden esperar en la cola</small>
         </div>
       </fieldset>
 
@@ -296,7 +296,7 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
         className="submit-button"
         disabled={isLoading}
       >
-        {isLoading ? 'Starting Simulation...' : 'Start Simulation'}
+        {isLoading ? 'Iniciando Simulación...' : 'Iniciar Simulación'}
       </button>
     </form>
   )

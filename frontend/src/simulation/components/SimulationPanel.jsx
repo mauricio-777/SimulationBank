@@ -61,7 +61,7 @@ function SimulationPanel({ defaultConfig }) {
       const response = await startSimulation(configData)
 
       if (!response.success) {
-        throw new Error(response.error || 'Failed to start simulation')
+        throw new Error(response.error || 'Fallo al iniciar simulación')
       }
 
       // parte-Leandro: Guardar el ID de la simulación
@@ -102,7 +102,7 @@ function SimulationPanel({ defaultConfig }) {
             // parte-Leandro: Si hay error, detener el intervalo
             if (stateResponse.status === 'error') {
               clearInterval(statusCheckInterval)
-              setError(stateResponse.error || 'Simulation error occurred')
+              setError(stateResponse.error || 'Ocurrió un error en la simulación')
             }
           }
         } catch (err) {
@@ -115,7 +115,7 @@ function SimulationPanel({ defaultConfig }) {
       return () => clearInterval(statusCheckInterval)
 
     } catch (err) {
-      setError(err.message || 'Failed to start simulation')
+      setError(err.message || 'Fallo al iniciar simulación')
       setIsSubmitting(false)
     } finally {
       setIsSubmitting(false)
@@ -142,7 +142,7 @@ function SimulationPanel({ defaultConfig }) {
       {error && (
         <div className="error-box">
           <p>{error}</p>
-          <button onClick={() => setError(null)}>Dismiss</button>
+          <button onClick={() => setError(null)}>Cerrar</button>
         </div>
       )}
 
@@ -160,16 +160,16 @@ function SimulationPanel({ defaultConfig }) {
           ) : (
             // parte-Leandro: Si hay simulación en curso, mostrar información y controles
             <div className="simulation-info">
-              <h3>Active Simulation</h3>
+              <h3>Simulación Activa</h3>
               <div className="info-box">
-                <p><strong>Simulation ID:</strong> {currentSimulationId}</p>
-                <p><strong>Status:</strong> {simulationStatus}</p>
+                <p><strong>ID de Simulación:</strong> {currentSimulationId}</p>
+                <p><strong>Estado:</strong> {simulationStatus}</p>
               </div>
 
               {/* parte-Leandro: Mostrar botón para volver al formulario si la simulación terminó */}
               {simulationStatus === 'completed' && (
                 <button className="reset-button" onClick={handleReset}>
-                  Start New Simulation
+                  Iniciar Nueva Simulación
                 </button>
               )}
             </div>
@@ -189,7 +189,7 @@ function SimulationPanel({ defaultConfig }) {
               {/* parte-Leandro: Mostrar gráficas de resultados si la simulación está completa */}
               {simulationStatus === 'completed' && results && (
                 <div className="results-section">
-                  <h3>Simulation Results</h3>
+                  <h3>Resultados de la Simulación</h3>
                   <MetricsChart metrics={results} />
                 </div>
               )}
@@ -197,7 +197,7 @@ function SimulationPanel({ defaultConfig }) {
               {/* parte-Leandro: Mostrar tabla de detalles de resultados si están disponibles */}
               {results && (
                 <div className="metrics-details">
-                  <h4>Detailed Metrics</h4>
+                  <h4>Métricas Detalladas</h4>
                   <div className="metrics-grid">
                     {Object.entries(results).map(([key, value]) => {
                       // Saltar la clave 'success' que no es una métrica

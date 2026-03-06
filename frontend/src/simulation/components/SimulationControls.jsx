@@ -17,21 +17,21 @@ function SimulationControls({ simulationId, onPause, onResume, onStop, isPaused,
         {/* parte-Leandro: Botón para pausar simulación si está en ejecución */}
         {isRunning && !isPaused && (
           <button className="control-button pause-button" onClick={onPause}>
-            ⏸ Pause
+            ⏸ Pausar
           </button>
         )}
 
         {/* parte-Leandro: Botón para reanudar simulación si está pausada */}
         {isPaused && (
           <button className="control-button resume-button" onClick={onResume}>
-            ▶ Resume
+            ▶ Reanudar
           </button>
         )}
 
         {/* parte-Leandro: Botón para detener simulación */}
         {isRunning && (
           <button className="control-button stop-button" onClick={onStop}>
-            ⏹ Stop
+            ⏹ Detener
           </button>
         )}
       </div>

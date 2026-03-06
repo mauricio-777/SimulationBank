@@ -78,7 +78,7 @@ function MetricsChart({ metrics }) {
     <div className="metrics-chart">
       {/* parte-Leandro: Sección de indicadores clave (KPIs) en vista de tarjetas */}
       <section className="metrics-section kpi-section">
-        <h4>Key Performance Indicators</h4>
+        <h4>Indicadores Clave de Rendimiento</h4>
         <div className="metrics-grid kpi-grid">
           {/* parte-Leandro: Mostrar métricas principales en formato grande y destacado */}
           {metrics && Object.entries(metrics).map(([key, value]) => {
@@ -111,13 +111,13 @@ function MetricsChart({ metrics }) {
 
       {/* parte-Leandro: Sección de tabla de todas las métricas */}
       <section className="metrics-section table-section">
-        <h4>Detailed Metrics</h4>
+        <h4>Métricas Detalladas</h4>
         <table className="metrics-table">
           <thead>
             <tr>
-              <th>Metric</th>
-              <th>Value</th>
-              <th>Status</th>
+              <th>Métrica</th>
+              <th>Valor</th>
+              <th>Estado</th>
             </tr>
           </thead>
           <tbody>
@@ -127,9 +127,13 @@ function MetricsChart({ metrics }) {
               if (typeof value !== 'number' || key === 'success') return null
 
               const status = getMetricStatus(key, value)
-              const statusLabel = status
-                .replace('metric-', '')
-                .toUpperCase()
+              const statusMap = {
+                'metric-good': 'BUENO',
+                'metric-moderate': 'REGULAR',
+                'metric-poor': 'MALO',
+                'metric-neutral': 'NEUTRO'
+              };
+              const statusLabel = statusMap[status] || 'NEUTRO';
 
               return (
                 <tr key={key} className={`metric-row ${status}`}>
@@ -147,7 +151,7 @@ function MetricsChart({ metrics }) {
 
       {/* parte-Leandro: Sección de gráfica de barras simple */}
       <section className="metrics-section chart-section">
-        <h4>Performance Chart</h4>
+        <h4>Gráfica de Rendimiento</h4>
         <div className="simple-chart">
           {/* parte-Leandro: Crear una visualización simple de barras horizontales */}
           {metrics && Object.entries(metrics)
@@ -180,36 +184,36 @@ function MetricsChart({ metrics }) {
 
       {/* parte-Leandro: Sección de conclusiones y recomendaciones */}
       <section className="metrics-section insights-section">
-        <h4>Insights & Recommendations</h4>
+        <h4>Conclusiones y Recomendaciones</h4>
         <div className="insights-content">
           {/* parte-Leandro: Generar recomendaciones basadas en las métricas */}
           <ul>
             {metrics && metrics.average_wait_time > 10 && (
               <li className="insight-warning">
-                ⚠️ <strong>High wait times detected:</strong> Consider increasing the number of tellers or improving service efficiency.
+                ⚠️ <strong>Tiempos de espera altos detectados:</strong> Considera aumentar el número de ventanillas o mejorar la eficiencia del servicio.
               </li>
             )}
 
             {metrics && metrics.customers_rejected > metrics.customers_served * 0.1 && (
               <li className="insight-warning">
-                ⚠️ <strong>Rejection rate is high:</strong> Increase maximum queue capacity or add more tellers to reduce lost customers.
+                ⚠️ <strong>La tasa de rechazo es alta:</strong> Aumenta la capacidad máxima de la cola o añade más ventanillas para reducir la pérdida de clientes.
               </li>
             )}
 
             {metrics && metrics.system_utilization > 0.95 && (
               <li className="insight-warning">
-                ⚠️ <strong>System is over-utilized:</strong> Consider adding more tellers or reducing customer arrival rate.
+                ⚠️ <strong>El sistema está sobreutilizado:</strong> Considera añadir más ventanillas o reducir la tasa de llegada de clientes.
               </li>
             )}
 
             {metrics && metrics.average_wait_time < 5 && metrics.system_utilization < 0.8 && (
               <li className="insight-success">
-                ✅ <strong>System is performing well:</strong> Wait times are low and system utilization is reasonable.
+                ✅ <strong>El sistema está funcionando bien:</strong> Los tiempos de espera son bajos y la utilización del sistema es razonable.
               </li>
             )}
 
             <li className="insight-info">
-              ℹ️ <strong>Simulation Summary:</strong> This simulation ran with the parameters you specified and collected metrics on queue behavior, service times, and system efficiency.
+              ℹ️ <strong>Resumen de la Simulación:</strong> Esta simulación se ejecutó con los parámetros que especificaste y recopiló métricas sobre el comportamiento de la cola, tiempos de servicio y eficiencia del sistema.
             </li>
           </ul>
         </div>
