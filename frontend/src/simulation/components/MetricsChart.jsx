@@ -32,11 +32,11 @@ function MetricsChart({ metrics }) {
     if (typeof value !== 'number') return value
 
     // Formatear según el tipo de métrica
-    if (key.includes('rate') || key.includes('percentage')) {
+    if (key.includes('tasa') || key.includes('porcentaje') || key.includes('probabilidad')) {
       return `${(value * 100).toFixed(2)}%`
     }
 
-    if (key.includes('time') || key.includes('wait') || key.includes('service')) {
+    if (key.includes('tiempo')) {
       return `${value.toFixed(2)}s`
     }
 
@@ -51,21 +51,21 @@ function MetricsChart({ metrics }) {
     if (typeof value !== 'number') return 'metric-neutral'
 
     // parte-Leandro: Tiempos de espera bajos son buenos
-    if (key.includes('wait_time')) {
+    if (key.includes('espera')) {
       if (value < 5) return 'metric-good'
       if (value < 15) return 'metric-moderate'
       return 'metric-poor'
     }
 
     // parte-Leandro: Tasas de servicio altas son buenas
-    if (key.includes('service_rate') || key.includes('throughput')) {
+    if (key.includes('servicio') || key.includes('rendimiento')) {
       if (value > 0.9) return 'metric-good'
       if (value > 0.7) return 'metric-moderate'
       return 'metric-poor'
     }
 
     // parte-Leandro: Utilización moderada es ideal
-    if (key.includes('utilization')) {
+    if (key.includes('utilizacion')) {
       if (value > 0.6 && value < 0.95) return 'metric-good'
       if (value > 0.4 && value < 1.0) return 'metric-moderate'
       return 'metric-poor'
@@ -87,11 +87,11 @@ function MetricsChart({ metrics }) {
 
             // Mostrar solo métricas clave
             const keyMetrics = [
-              'average_wait_time',
-              'average_service_time',
-              'customers_served',
-              'customers_rejected',
-              'system_utilization'
+              'tiempo_espera_promedio',
+              'tiempo_servicio_promedio',
+              'clientes_atendidos',
+              'clientes_rechazados',
+              'utilizacion_ventanillas_porcentaje'
             ]
 
             if (!keyMetrics.some(km => key.includes(km))) return null
@@ -123,9 +123,9 @@ function MetricsChart({ metrics }) {
           <tbody>
             {/* parte-Leandro: Iterar sobre todas las métricas y mostrarlas en la tabla */}
             {metrics && Object.entries(metrics).map(([key, value]) => {
-              // Saltar valores no numéricos y ciertas claves especiales
-              if (typeof value !== 'number' || key === 'success') return null
-
+              // Saltar valores no numéricos, arreglos extensos (como historial) y ciertas claves especiales
+              if (typeof value !== 'number' || key === 'success' || Array.isArray(value)) return null
+              
               const status = getMetricStatus(key, value)
               const statusMap = {
                 'metric-good': 'BUENO',
@@ -155,12 +155,12 @@ function MetricsChart({ metrics }) {
         <div className="simple-chart">
           {/* parte-Leandro: Crear una visualización simple de barras horizontales */}
           {metrics && Object.entries(metrics)
-            .filter(([key, value]) => typeof value === 'number' && !key.includes('count') && key !== 'success')
+            .filter(([key, value]) => typeof value === 'number' && !key.includes('count') && key !== 'success' && !Array.isArray(value))
             .slice(0, 5) // Mostrar solo las primeras 5 métricas para evitar saturación
             .map(([key, value]) => {
               // Normalizar valores a escala 0-100 para visualización
               let normalizedValue = value
-              if (key.includes('time')) {
+              if (key.includes('tiempo')) {
                 normalizedValue = Math.min((value / 30) * 100, 100) // Asumir máximo 30 segundos
               } else if (value <= 1) {
                 normalizedValue = value * 100 // Si es porcentaje (0-1), convertir a 0-100
@@ -188,25 +188,25 @@ function MetricsChart({ metrics }) {
         <div className="insights-content">
           {/* parte-Leandro: Generar recomendaciones basadas en las métricas */}
           <ul>
-            {metrics && metrics.average_wait_time > 10 && (
+            {metrics && metrics.tiempo_espera_promedio > 10 && (
               <li className="insight-warning">
                 ⚠️ <strong>Tiempos de espera altos detectados:</strong> Considera aumentar el número de ventanillas o mejorar la eficiencia del servicio.
               </li>
             )}
 
-            {metrics && metrics.customers_rejected > metrics.customers_served * 0.1 && (
+            {metrics && metrics.clientes_rechazados > metrics.clientes_atendidos * 0.1 && (
               <li className="insight-warning">
                 ⚠️ <strong>La tasa de rechazo es alta:</strong> Aumenta la capacidad máxima de la cola o añade más ventanillas para reducir la pérdida de clientes.
               </li>
             )}
 
-            {metrics && metrics.system_utilization > 0.95 && (
+            {metrics && metrics.utilizacion_ventanillas_porcentaje > 0.95 && (
               <li className="insight-warning">
                 ⚠️ <strong>El sistema está sobreutilizado:</strong> Considera añadir más ventanillas o reducir la tasa de llegada de clientes.
               </li>
             )}
 
-            {metrics && metrics.average_wait_time < 5 && metrics.system_utilization < 0.8 && (
+            {metrics && metrics.tiempo_espera_promedio < 5 && metrics.utilizacion_ventanillas_porcentaje < 0.8 && (
               <li className="insight-success">
                 ✅ <strong>El sistema está funcionando bien:</strong> Los tiempos de espera son bajos y la utilización del sistema es razonable.
               </li>

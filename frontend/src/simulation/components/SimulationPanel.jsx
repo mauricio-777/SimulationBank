@@ -91,7 +91,9 @@ function SimulationPanel({ defaultConfig }) {
                 try {
                   const resultsResponse = await getSimulationResults(simId)
                   if (resultsResponse.success) {
-                    setResults(resultsResponse.metrics || resultsResponse)
+                    // parte-Leandro: Extraer las estadísticas globales si vienen anidadas
+                    const finalMetrics = resultsResponse.metrics?.estadisticas_globales || resultsResponse.metrics || resultsResponse
+                    setResults(finalMetrics)
                   }
                 } catch (err) {
                   console.error('Error fetching results:', err)
@@ -200,8 +202,8 @@ function SimulationPanel({ defaultConfig }) {
                   <h4>Métricas Detalladas</h4>
                   <div className="metrics-grid">
                     {Object.entries(results).map(([key, value]) => {
-                      // Saltar la clave 'success' que no es una métrica
-                      if (key === 'success') return null
+                      // Saltar la clave 'success' o si el valor es un array u objeto (no renderizable directamente)
+                      if (key === 'success' || typeof value === 'object') return null
 
                       // Formatear la visualización del valor
                       let displayValue = value
