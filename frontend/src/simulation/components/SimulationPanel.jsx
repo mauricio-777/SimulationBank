@@ -165,7 +165,13 @@ function SimulationPanel({ defaultConfig }) {
               <h3>Simulación Activa</h3>
               <div className="info-box">
                 <p><strong>ID de Simulación:</strong> {currentSimulationId}</p>
-                <p><strong>Estado:</strong> {simulationStatus}</p>
+                <p><strong>Estado:</strong> {
+                  simulationStatus === 'initializing' ? 'Inicializando...' :
+                    simulationStatus === 'running' ? 'En curso' :
+                      simulationStatus === 'completed' ? 'Completada' :
+                        simulationStatus === 'error' ? 'Error' :
+                          simulationStatus
+                }</p>
               </div>
 
               {/* parte-Leandro: Mostrar botón para volver al formulario si la simulación terminó */}

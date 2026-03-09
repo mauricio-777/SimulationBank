@@ -104,7 +104,7 @@ class SimulationMetrics:
                 "promedio_cola": round(avg_queue, 2),
                 "tiempo_espera_promedio": round(avg_wait_time_global, 2),
                 "utilizacion_ventanillas_porcentaje": round(teller_utilization, 2),
-                "throughput_clientes_por_segundo": round(throughput, 4),
+                "tasa_procesamiento_clientes_por_segundo": round(throughput, 4),
                 "porcentaje_abandono": round(abandonment_rate, 2),
                 "total_servidos": self.customers_served,
                 "total_rechazados": self.customers_rejected

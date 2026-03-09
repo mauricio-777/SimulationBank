@@ -201,7 +201,7 @@ function ConfigForm({ defaultConfig, onSubmit, isLoading }) {
             disabled={isLoading}
           >
             <option value="exponential">Exponencial</option>
-            <option value="poisson">Poisson</option>
+            <option value="poisson">Distribución de Poisson</option>
           </select>
         </div>
       </fieldset>
