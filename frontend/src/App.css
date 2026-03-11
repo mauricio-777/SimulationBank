@@ -773,7 +773,128 @@ html, body {
   font-weight: 700;
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
+/* ===== BLOQUE DE DIAGNÓSTICO ADAPTATIVO ===== */
+.diagnosis-block {
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  border-left-width: 5px;
+  background-color: var(--bg-primary);
+  margin-bottom: 0;
+}
+
+.diagnosis-block.diagnosis-saturated {
+  border-left-color: var(--error-color);
+  background-color: #fff5f5;
+}
+
+.diagnosis-block.diagnosis-overloaded {
+  border-left-color: var(--warning-color);
+  background-color: #fffbeb;
+}
+
+.diagnosis-block.diagnosis-optimal {
+  border-left-color: var(--success-color);
+  background-color: #f0fdf4;
+}
+
+.diagnosis-block.diagnosis-underutilized {
+  border-left-color: var(--info-color);
+  background-color: #f0f9ff;
+}
+
+.diagnosis-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.diagnosis-saturated .diagnosis-title  { color: var(--error-color); }
+.diagnosis-overloaded .diagnosis-title { color: var(--warning-color); }
+.diagnosis-optimal .diagnosis-title    { color: var(--success-color); }
+.diagnosis-underutilized .diagnosis-title { color: var(--info-color); }
+
+.diagnosis-formula {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  line-height: 1.8;
+}
+
+.diagnosis-rho-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.diagnosis-saturated  .diagnosis-rho-value { color: var(--error-color); }
+.diagnosis-overloaded .diagnosis-rho-value { color: var(--warning-color); }
+.diagnosis-optimal    .diagnosis-rho-value { color: var(--success-color); }
+.diagnosis-underutilized .diagnosis-rho-value { color: var(--info-color); }
+
+.diagnosis-formula-note {
+  opacity: 0.75;
+  font-size: 0.82rem;
+  display: block;
+  margin-top: 4px;
+}
+
+.diagnosis-text {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.diagnosis-card {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-top: 0.75rem;
+  border-left: 4px solid var(--border-color);
+  background-color: var(--bg-secondary);
+}
+
+.diagnosis-card.card-solution {
+  border-left-color: var(--warning-color);
+  background-color: #fffbeb;
+}
+
+.diagnosis-card.card-optimal {
+  border-left-color: var(--success-color);
+  background-color: #f0fdf4;
+}
+
+.diagnosis-card.card-savings {
+  border-left-color: var(--info-color);
+  background-color: #f0f9ff;
+}
+
+.diagnosis-card strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.diagnosis-card ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.8;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.diagnosis-card ul li strong {
+  display: inline;
+  color: var(--text-primary);
+}
+
 @media (max-width: 768px) {
   .app-header {
     padding: 1.5rem;

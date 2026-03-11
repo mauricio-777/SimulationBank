@@ -28,7 +28,6 @@ function SimulationPanel({ defaultConfig }) {
   const [currentSimulationId, setCurrentSimulationId] = useState(null)
 
   // parte-Leandro: Estado para almacenar el estado actual de la simulación
-  // Valores posibles: null, 'initializing', 'running', 'completed', 'error'
   const [simulationStatus, setSimulationStatus] = useState(null)
 
   // parte-Leandro: Estado para almacenar el progreso de la simulación (0-100%)
@@ -43,6 +42,9 @@ function SimulationPanel({ defaultConfig }) {
   // parte-Leandro: Estado para indicar si hay un envío en progreso
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // parte-Leandro: Guardar la configuración usada para análisis adaptativo en los resultados
+  const [usedConfig, setUsedConfig] = useState(null)
+
   /**
    * parte-Leandro: Manejador para cuando el usuario envía el formulario de configuración
    * Este método:
@@ -55,6 +57,7 @@ function SimulationPanel({ defaultConfig }) {
     setIsSubmitting(true)
     setError(null)
     setResults(null)
+    setUsedConfig(configData) // parte-Leandro: Guardar config para diagnóstico adaptativo
 
     try {
       // parte-Leandro: Llamar al servicio para iniciar la simulación en el backend
@@ -198,7 +201,7 @@ function SimulationPanel({ defaultConfig }) {
               {simulationStatus === 'completed' && results && (
                 <div className="results-section">
                   <h3>Resultados de la Simulación</h3>
-                  <MetricsChart metrics={results} />
+                  <MetricsChart metrics={results} config={usedConfig} />
                 </div>
               )}
 
