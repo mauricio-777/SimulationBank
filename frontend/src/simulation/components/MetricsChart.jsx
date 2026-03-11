@@ -1,115 +1,192 @@
 /**
  * parte-Leandro: Componente para mostrar gráficas de métricas (Tarea 4.3)
- * 
- * Este componente visualiza los resultados de la simulación en formato gráfico.
- * Actualmente muestra:
- * 1. Tabla de métricas principales
- * 2. Gráficas de barras para comparación
- * 3. Indicadores clave de rendimiento
- * 
- * En futuras versiones se puede integrar una librería como Chart.js o D3
- * para gráficas más avanzadas (líneas temporales, áreas, etc.)
+ *
+ * Muestra los resultados de la simulación con:
+ * 1. Tiempos en formato legible (minutos y segundos)
+ * 2. Porcentajes con contexto real (cuántas personas representan)
+ * 3. Indicadores de estado (bueno / regular / malo)
  */
 function MetricsChart({ metrics }) {
-  /**
-   * parte-Leandro: Función para formatear la llave de métrica a texto legible
-   * Convierte 'average_wait_time' a 'Average Wait Time'
-   */
-  const formatMetricLabel = (key) => {
-    return key
-      .replace(/_/g, ' ')
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
+
+  // parte-Leandro: Convierte segundos a texto legible como "2 min 30 seg"
+  const formatSeconds = (seconds) => {
+    if (seconds < 60) {
+      return `${seconds.toFixed(1)} seg`
+    }
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.round(seconds % 60)
+    return secs > 0 ? `${mins} min ${secs} seg` : `${mins} min`
   }
 
-  /**
-   * parte-Leandro: Función para formatear valores numéricos
-   * Si es un porcentaje, muestra con símbolo %
-   * Si es un tiempo, muestra con decimales limitados
-   */
-  const formatMetricValue = (key, value) => {
-    if (typeof value !== 'number') return value
+  // parte-Leandro: Etiquetas amigables en español para cada clave del backend
+  const friendlyLabels = {
+    'tiempo_espera_promedio':                  'Tiempo Promedio de Espera en Cola',
+    'tiempo_servicio_promedio':                'Tiempo Promedio de Atención',
+    'clientes_atendidos':                      'Clientes Atendidos',
+    'clientes_rechazados':                     'Clientes Rechazados',
+    'utilizacion_ventanillas_porcentaje':      'Ocupación de Ventanillas',
+    'max_cola':                                'Pico Máximo de la Cola',
+    'promedio_cola':                           'Promedio de Personas en Cola',
+    'tasa_procesamiento_clientes_por_segundo': 'Velocidad de Atención',
+    'porcentaje_abandono':                     'Porcentaje de Abandono',
+    'total_servidos':                          'Total de Clientes Atendidos',
+    'total_rechazados':                        'Total de Clientes Rechazados',
+  }
 
-    // Formatear según el tipo de métrica
-    if (key.includes('tasa') || key.includes('porcentaje') || key.includes('probabilidad')) {
-      return `${(value * 100).toFixed(2)}%`
+  const getLabel = (key) =>
+    friendlyLabels[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+
+  // parte-Leandro: Genera el valor formateado + texto interpretativo según el tipo de métrica
+  const getFormattedValue = (key, value) => {
+    const totalClientes = (metrics?.total_servidos || 0) + (metrics?.total_rechazados || 0)
+
+    if (key === 'tiempo_espera_promedio') {
+      return {
+        display: formatSeconds(value),
+        sub: `Cada cliente esperó en promedio ${formatSeconds(value)} antes de ser atendido.`
+      }
     }
-
+    if (key === 'tiempo_servicio_promedio') {
+      return {
+        display: formatSeconds(value),
+        sub: `Cada atención en ventanilla duró en promedio ${formatSeconds(value)}.`
+      }
+    }
+    if (key === 'utilizacion_ventanillas_porcentaje') {
+      const detail = value >= 95
+        ? 'Las ventanillas estuvieron casi siempre ocupadas — el sistema está saturado.'
+        : value >= 60
+        ? 'Buen equilibrio: las ventanillas trabajaron la mayor parte del tiempo.'
+        : 'Las ventanillas estuvieron poco ocupadas — hay más capacidad de la necesaria.'
+      return { display: `${value.toFixed(1)}%`, sub: detail }
+    }
+    if (key === 'porcentaje_abandono') {
+      const rechazados = metrics?.total_rechazados || 0
+      const atendidos = metrics?.total_servidos || 0
+      return {
+        display: `${value.toFixed(1)}%`,
+        sub: `De ${totalClientes} personas que llegaron, ${rechazados} no pudieron ser atendidas (cola llena) y ${atendidos} sí fueron atendidas.`
+      }
+    }
+    if (key === 'clientes_atendidos' || key === 'total_servidos') {
+      const pct = totalClientes > 0 ? ((value / totalClientes) * 100).toFixed(1) : 0
+      return {
+        display: `${value} personas`,
+        sub: `${pct}% de todos los clientes que llegaron al banco.`
+      }
+    }
+    if (key === 'clientes_rechazados' || key === 'total_rechazados') {
+      const pct = totalClientes > 0 ? ((value / totalClientes) * 100).toFixed(1) : 0
+      return {
+        display: `${value} personas`,
+        sub: `${pct}% de los clientes no pudo ser atendido porque la cola estaba al máximo.`
+      }
+    }
+    if (key === 'max_cola') {
+      return {
+        display: `${value} personas`,
+        sub: `En el peor momento del día, ${value} personas estaban esperando al mismo tiempo en la fila.`
+      }
+    }
+    if (key === 'promedio_cola') {
+      return {
+        display: `${value.toFixed(1)} personas`,
+        sub: `En promedio, había ${value.toFixed(1)} personas esperando en la fila durante la simulación.`
+      }
+    }
+    if (key === 'tasa_procesamiento_clientes_por_segundo') {
+      const porMinuto = (value * 60).toFixed(2)
+      return {
+        display: `${value.toFixed(4)} cl/s`,
+        sub: `El banco procesó aproximadamente ${porMinuto} clientes por minuto en promedio.`
+      }
+    }
+    if (key.includes('porcentaje')) {
+      return { display: `${value.toFixed(2)}%`, sub: '' }
+    }
     if (key.includes('tiempo')) {
-      return `${value.toFixed(2)}s`
+      return { display: formatSeconds(value), sub: '' }
     }
-
-    return value.toFixed(2)
+    return { display: Number.isInteger(value) ? `${value}` : value.toFixed(2), sub: '' }
   }
 
-  /**
-   * parte-Leandro: Determinar si la métrica indica buen o mal rendimiento
-   * Retorna una clase CSS para colorear la métrica
-   */
+  // parte-Leandro: Semáforo de estado (bueno, regular, malo) según tipo y umbral de la métrica
   const getMetricStatus = (key, value) => {
     if (typeof value !== 'number') return 'metric-neutral'
-
-    // parte-Leandro: Tiempos de espera bajos son buenos
-    if (key.includes('espera')) {
+    if (key === 'tiempo_espera_promedio') {
+      if (value < 60) return 'metric-good'
+      if (value < 300) return 'metric-moderate'
+      return 'metric-poor'
+    }
+    if (key === 'utilizacion_ventanillas_porcentaje') {
+      if (value > 60 && value < 95) return 'metric-good'
+      if (value >= 95) return 'metric-poor'
+      return 'metric-moderate'
+    }
+    if (key === 'porcentaje_abandono') {
       if (value < 5) return 'metric-good'
-      if (value < 15) return 'metric-moderate'
+      if (value < 20) return 'metric-moderate'
       return 'metric-poor'
     }
-
-    // parte-Leandro: Tasas de servicio altas son buenas
-    if (key.includes('servicio') || key.includes('rendimiento')) {
-      if (value > 0.9) return 'metric-good'
-      if (value > 0.7) return 'metric-moderate'
-      return 'metric-poor'
-    }
-
-    // parte-Leandro: Utilización moderada es ideal
-    if (key.includes('utilizacion')) {
-      if (value > 0.6 && value < 0.95) return 'metric-good'
-      if (value > 0.4 && value < 1.0) return 'metric-moderate'
-      return 'metric-poor'
-    }
-
     return 'metric-neutral'
   }
 
+  const kpiKeys = [
+    'tiempo_espera_promedio',
+    'total_servidos',
+    'total_rechazados',
+    'utilizacion_ventanillas_porcentaje',
+    'porcentaje_abandono',
+  ]
+
+  const tableKeys = [
+    'max_cola',
+    'promedio_cola',
+    'tasa_procesamiento_clientes_por_segundo',
+    'tiempo_espera_promedio',
+    'utilizacion_ventanillas_porcentaje',
+    'porcentaje_abandono',
+    'total_servidos',
+    'total_rechazados',
+  ]
+
+  const statusMap = {
+    'metric-good': 'BUENO',
+    'metric-moderate': 'REGULAR',
+    'metric-poor': 'MALO',
+    'metric-neutral': 'NEUTRO'
+  }
+
+  const totalClientes = (metrics?.total_servidos || 0) + (metrics?.total_rechazados || 0)
+
   return (
     <div className="metrics-chart">
-      {/* parte-Leandro: Sección de indicadores clave (KPIs) en vista de tarjetas */}
+
+      {/* parte-Leandro: Tarjetas KPI principales */}
       <section className="metrics-section kpi-section">
-        <h4>Indicadores Clave de Rendimiento</h4>
+        <h4>Indicadores Clave</h4>
         <div className="metrics-grid kpi-grid">
-          {/* parte-Leandro: Mostrar métricas principales en formato grande y destacado */}
-          {metrics && Object.entries(metrics).map(([key, value]) => {
-            // Saltar valores no numéricos y ciertas claves
-            if (typeof value !== 'number' || key === 'success') return null
-
-            // Mostrar solo métricas clave
-            const keyMetrics = [
-              'tiempo_espera_promedio',
-              'tiempo_servicio_promedio',
-              'clientes_atendidos',
-              'clientes_rechazados',
-              'utilizacion_ventanillas_porcentaje'
-            ]
-
-            if (!keyMetrics.some(km => key.includes(km))) return null
-
+          {kpiKeys.map(key => {
+            const value = metrics?.[key]
+            if (value === undefined || value === null) return null
             const status = getMetricStatus(key, value)
-
+            const { display, sub } = getFormattedValue(key, value)
             return (
               <div key={key} className={`kpi-card ${status}`}>
-                <span className="kpi-label">{formatMetricLabel(key)}</span>
-                <span className="kpi-value">{formatMetricValue(key, value)}</span>
-                <span className="kpi-indicator"></span>
+                <span className="kpi-label">{getLabel(key)}</span>
+                <span className="kpi-value">{display}</span>
+                {sub && (
+                  <span className="kpi-info" style={{ display: 'block', fontSize: '0.76rem', marginTop: '8px', opacity: 0.85, lineHeight: '1.4' }}>
+                    {sub}
+                  </span>
+                )}
               </div>
             )
           })}
         </div>
       </section>
 
-      {/* parte-Leandro: Sección de tabla de todas las métricas */}
+      {/* parte-Leandro: Tabla detallada con interpretación de cada métrica */}
       <section className="metrics-section table-section">
         <h4>Métricas Detalladas</h4>
         <table className="metrics-table">
@@ -121,26 +198,24 @@ function MetricsChart({ metrics }) {
             </tr>
           </thead>
           <tbody>
-            {/* parte-Leandro: Iterar sobre todas las métricas y mostrarlas en la tabla */}
-            {metrics && Object.entries(metrics).map(([key, value]) => {
-              // Saltar valores no numéricos, arreglos extensos (como historial) y ciertas claves especiales
-              if (typeof value !== 'number' || key === 'success' || Array.isArray(value)) return null
-              
+            {tableKeys.map(key => {
+              const value = metrics?.[key]
+              if (value === undefined || value === null) return null
               const status = getMetricStatus(key, value)
-              const statusMap = {
-                'metric-good': 'BUENO',
-                'metric-moderate': 'REGULAR',
-                'metric-poor': 'MALO',
-                'metric-neutral': 'NEUTRO'
-              };
-              const statusLabel = statusMap[status] || 'NEUTRO';
-
+              const { display, sub } = getFormattedValue(key, value)
               return (
                 <tr key={key} className={`metric-row ${status}`}>
-                  <td className="metric-name">{formatMetricLabel(key)}</td>
-                  <td className="metric-value">{formatMetricValue(key, value)}</td>
+                  <td className="metric-name">
+                    <strong>{getLabel(key)}</strong>
+                    {sub && (
+                      <span style={{ display: 'block', fontSize: '0.78rem', opacity: 0.75, marginTop: '4px', lineHeight: '1.4' }}>
+                        {sub}
+                      </span>
+                    )}
+                  </td>
+                  <td className="metric-value" style={{ fontWeight: 'bold', fontSize: '1.05rem' }}>{display}</td>
                   <td className="metric-status">
-                    <span className={`status-badge ${status}`}>{statusLabel}</span>
+                    <span className={`status-badge ${status}`}>{statusMap[status] || 'NEUTRO'}</span>
                   </td>
                 </tr>
               )
@@ -149,71 +224,38 @@ function MetricsChart({ metrics }) {
         </table>
       </section>
 
-      {/* parte-Leandro: Sección de gráfica de barras simple */}
-      <section className="metrics-section chart-section">
-        <h4>Gráfica de Rendimiento</h4>
-        <div className="simple-chart">
-          {/* parte-Leandro: Crear una visualización simple de barras horizontales */}
-          {metrics && Object.entries(metrics)
-            .filter(([key, value]) => typeof value === 'number' && !key.includes('count') && key !== 'success' && !Array.isArray(value))
-            .slice(0, 5) // Mostrar solo las primeras 5 métricas para evitar saturación
-            .map(([key, value]) => {
-              // Normalizar valores a escala 0-100 para visualización
-              let normalizedValue = value
-              if (key.includes('tiempo')) {
-                normalizedValue = Math.min((value / 30) * 100, 100) // Asumir máximo 30 segundos
-              } else if (value <= 1) {
-                normalizedValue = value * 100 // Si es porcentaje (0-1), convertir a 0-100
-              }
-
-              return (
-                <div key={key} className="chart-bar-item">
-                  <label>{formatMetricLabel(key)}</label>
-                  <div className="bar-container">
-                    <div
-                      className="bar-fill"
-                      style={{ width: `${Math.min(normalizedValue, 100)}%` }}
-                    ></div>
-                  </div>
-                  <span className="bar-value">{formatMetricValue(key, value)}</span>
-                </div>
-              )
-            })}
-        </div>
-      </section>
-
-      {/* parte-Leandro: Sección de conclusiones y recomendaciones */}
+      {/* parte-Leandro: Conclusiones generadas automáticamente según los datos */}
       <section className="metrics-section insights-section">
         <h4>Conclusiones y Recomendaciones</h4>
         <div className="insights-content">
-          {/* parte-Leandro: Generar recomendaciones basadas en las métricas */}
           <ul>
-            {metrics && metrics.tiempo_espera_promedio > 10 && (
+            {metrics?.tiempo_espera_promedio > 300 && (
               <li className="insight-warning">
-                ⚠️ <strong>Tiempos de espera altos detectados:</strong> Considera aumentar el número de ventanillas o mejorar la eficiencia del servicio.
+                ⚠️ <strong>Tiempos de espera muy altos:</strong> Los clientes esperaron en promedio {formatSeconds(metrics.tiempo_espera_promedio)}. Se recomienda añadir más ventanillas.
               </li>
             )}
-
-            {metrics && metrics.clientes_rechazados > metrics.clientes_atendidos * 0.1 && (
+            {metrics?.tiempo_espera_promedio > 60 && metrics?.tiempo_espera_promedio <= 300 && (
               <li className="insight-warning">
-                ⚠️ <strong>La tasa de rechazo es alta:</strong> Aumenta la capacidad máxima de la cola o añade más ventanillas para reducir la pérdida de clientes.
+                ⚠️ <strong>Tiempos de espera moderados:</strong> El promedio de {formatSeconds(metrics.tiempo_espera_promedio)} podría mejorar con una ventanilla adicional.
               </li>
             )}
-
-            {metrics && metrics.utilizacion_ventanillas_porcentaje > 0.95 && (
+            {metrics?.porcentaje_abandono > 20 && (
               <li className="insight-warning">
-                ⚠️ <strong>El sistema está sobreutilizado:</strong> Considera añadir más ventanillas o reducir la tasa de llegada de clientes.
+                ⚠️ <strong>Alta tasa de abandono ({metrics.porcentaje_abandono.toFixed(1)}%):</strong> {metrics.total_rechazados} clientes se fueron sin ser atendidos. Aumenta la capacidad de la cola o añade ventanillas.
               </li>
             )}
-
-            {metrics && metrics.tiempo_espera_promedio < 5 && metrics.utilizacion_ventanillas_porcentaje < 0.8 && (
+            {metrics?.utilizacion_ventanillas_porcentaje >= 95 && (
+              <li className="insight-warning">
+                ⚠️ <strong>Sistema saturado ({metrics.utilizacion_ventanillas_porcentaje.toFixed(1)}% de ocupación):</strong> Las ventanillas están activas casi todo el tiempo y no pueden manejar picos de demanda.
+              </li>
+            )}
+            {metrics?.tiempo_espera_promedio <= 60 && metrics?.porcentaje_abandono <= 5 && (
               <li className="insight-success">
-                ✅ <strong>El sistema está funcionando bien:</strong> Los tiempos de espera son bajos y la utilización del sistema es razonable.
+                ✅ <strong>Excelente rendimiento:</strong> Espera promedio de {formatSeconds(metrics.tiempo_espera_promedio)} y solo {metrics.total_rechazados} clientes rechazados. El sistema funciona de forma óptima.
               </li>
             )}
-
             <li className="insight-info">
-              ℹ️ <strong>Resumen de la Simulación:</strong> Esta simulación se ejecutó con los parámetros que especificaste y recopiló métricas sobre el comportamiento de la cola, tiempos de servicio y eficiencia del sistema.
+              ℹ️ <strong>Resumen general:</strong> De un total de {totalClientes} clientes simulados, <strong>{metrics?.total_servidos || 0} fueron atendidos</strong> y <strong>{metrics?.total_rechazados || 0} no pudieron ser atendidos</strong> por cola llena.
             </li>
           </ul>
         </div>
